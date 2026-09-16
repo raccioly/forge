@@ -1,0 +1,45 @@
+# EXAMPLE ONLY — illustrative target config living inside the Forge repo.
+# This does NOT modify DocGuard or any other product. Copy/adapt into a
+# target app only when that app is explicitly onboarded to Forge.
+
+version: 1
+product: example-docs-cli
+default_branch: main
+
+approvers:
+  behavioral:
+    - raccioly
+  core:
+    - raccioly
+
+invariants:
+  - id: zero-deps-runtime
+    summary: Runtime stays within the declared package dependency contract
+  - id: cli-bin-stable
+    summary: Published bin entry must remain stable for existing users
+  - id: node18-floor
+    summary: engines.node stays at the published minimum
+  - id: enforcement-path
+    summary: Primary audit/guard commands remain the enforcement path for canonical docs
+
+protected_paths:
+  - path: cli/main.mjs
+    reason: CLI entrypoint contract
+  - path: cli/config.mjs
+    reason: Config load/merge semantics
+  - path: package.json
+    reason: bin, engines, and published files
+  - path: action.yml
+    reason: GitHub Action contract
+  - path: schemas/
+    reason: Machine-readable contracts
+  - path: STANDARD.md
+    reason: Canonical standard text
+
+additive_hints:
+  - paths:
+      - examples/**
+      - docs/**
+      - templates/**
+      - benchmarks/**
+    notes: Prefer Additive here unless the change alters published CLI defaults or contracts

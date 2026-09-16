@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/raccioly/forge/schemas/core.schema.json",
+  "title": "Forge target core.yaml",
+  "description": "Thin protected-surface declaration checked into a target application so Forge can classify change requests.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "product", "default_branch", "approvers", "invariants", "protected_paths"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version for Forge core.yaml files."
+    },
+    "product": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short product id (e.g. docguard-cli)."
+    },
+    "default_branch": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Default branch Forge must never commit to (usually main or master)."
+    },
+    "approvers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["behavioral", "core"],
+      "properties": {
+        "behavioral": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Handles that may authorize Behavioral class work before code."
+        },
+        "core": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Handles that may reclassify or authorize scoped work touching core."
+        }
+      }
+    },
+    "invariants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "summary"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "summary": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "protected_paths": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "reason"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Repo-relative path or glob owners treat as core."
+          },
+          "reason": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "additive_hints": {
+      "type": "array",
+      "description": "Optional hints for paths that are usually Additive unless they change published defaults/contracts.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["paths"],
+        "properties": {
+          "paths": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  }
+}
