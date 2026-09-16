@@ -1,0 +1,90 @@
+:root {
+  --bg: #0f1115;
+  --panel: #181b22;
+  --text: #e8eaef;
+  --muted: #9aa3b2;
+  --line: #2a3040;
+  --accent: #6ee7b7;
+  --warn: #fbbf24;
+  --danger: #f87171;
+  --info: #93c5fd;
+  --radius: 14px;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: radial-gradient(1200px 600px at 20% -10%, #1a2438, var(--bg));
+  color: var(--text);
+  min-height: 100vh;
+}
+.wrap { max-width: 720px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+.hero h1 { font-size: 1.75rem; margin: 0.35rem 0 0.6rem; letter-spacing: -0.02em; }
+.eyebrow { color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; margin: 0; font-weight: 600; }
+.lede { color: var(--muted); line-height: 1.5; margin: 0; }
+.panel {
+  margin-top: 1.5rem;
+  background: color-mix(in srgb, var(--panel) 92%, black);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+label { display: block; font-weight: 600; margin: 0.75rem 0 0.4rem; }
+label:first-child { margin-top: 0; }
+textarea {
+  width: 100%;
+  resize: vertical;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #0c0e13;
+  color: var(--text);
+  padding: 0.75rem 0.85rem;
+  font: inherit;
+  line-height: 1.45;
+}
+textarea:focus { outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent); border-color: transparent; }
+.row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.65rem; }
+.actions { justify-content: space-between; margin-top: 1rem; }
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.55rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+button.primary { background: var(--accent); color: #062015; }
+button.primary:hover { filter: brightness(1.05); }
+button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+button.ghost:hover { border-color: var(--muted); }
+button.chip { background: #222836; color: var(--text); font-weight: 500; font-size: 0.85rem; }
+button.chip:hover { background: #2c3446; }
+.muted { color: var(--muted); }
+.hint { margin: 0; font-size: 0.85rem; }
+.hidden { display: none !important; }
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.badge.Additive { background: color-mix(in srgb, var(--accent) 25%, transparent); color: var(--accent); }
+.badge.Behavioral { background: color-mix(in srgb, var(--warn) 25%, transparent); color: var(--warn); }
+.badge.Core { background: color-mix(in srgb, var(--danger) 25%, transparent); color: var(--danger); }
+.badge-row { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem; }
+.result h2 { font-size: 0.95rem; margin: 1rem 0 0.35rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.result p { margin: 0; line-height: 1.5; }
+.brief {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--danger) 55%, var(--line));
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+.brief h3 { margin: 0 0 0.5rem; font-size: 1rem; }
+.brief ul { margin: 0.4rem 0 0; padding-left: 1.2rem; color: var(--text); }
+.brief li { margin: 0.25rem 0; }
+.error { color: var(--danger); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }

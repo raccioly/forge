@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Forge — intake demo</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <header class="hero">
+        <p class="eyebrow">Forge · local intake demo</p>
+        <h1>Submit feedback. See the brake.</h1>
+        <p class="lede">
+          Paste an ask, optionally attach a target <code>core.yaml</code>, and Forge
+          classifies Additive / Behavioral / Core before any code.
+        </p>
+      </header>
+
+      <section class="panel">
+        <label for="ask">Feedback</label>
+        <textarea id="ask" rows="5" placeholder="What should change?"></textarea>
+
+        <div class="row samples" id="samples"></div>
+
+        <label for="core">Target core.yaml <span class="muted">(optional)</span></label>
+        <textarea id="core" rows="10" placeholder="Paste core.yaml, or load the example…"></textarea>
+        <div class="row">
+          <button type="button" class="ghost" id="load-example">Load example core.yaml</button>
+          <button type="button" class="ghost" id="clear-core">Clear</button>
+        </div>
+
+        <div class="row actions">
+          <button type="button" class="primary" id="classify">Classify</button>
+          <p class="hint muted">Local only · nothing is sent to GitHub or merged</p>
+        </div>
+      </section>
+
+      <section class="panel result hidden" id="result">
+        <div class="badge-row">
+          <span class="badge" id="class-badge">—</span>
+          <span class="muted" id="core-flag"></span>
+        </div>
+        <h2>Rationale</h2>
+        <p id="rationale"></p>
+        <h2>Allowed next step</h2>
+        <p id="next"></p>
+        <div id="approvers" class="approvers muted"></div>
+        <div id="brief" class="brief hidden"></div>
+      </section>
+
+      <section class="panel error hidden" id="error"></section>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

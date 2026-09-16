@@ -45,9 +45,20 @@ DocGuard and other shipping products stay untouched until you explicitly onboard
 - [`AGENTS.md`](AGENTS.md) — rules for any agent running Forge
 - [`cli/`](cli/) — `forge-classify` implementation
 
+## Local intake demo
+
+Zero-dependency local UI (uses the classifier):
+
+```bash
+npm run demo
+# open http://127.0.0.1:8787
+```
+
+Paste feedback, optionally load the example `core.yaml`, hit Classify. Core asks show a human-review brief stub (no implementation PR).
+
 ## Status
 
-v0 = policy + schema + **classifier**. Employee login portal, org-wide GitHub project catalog, and SSO come later.
+v0 = policy + schema + classifier + **local intake demo**. Employee login portal, org-wide GitHub project catalog, and SSO come later.
 
 ## License
 
