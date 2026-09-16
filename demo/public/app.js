@@ -1,5 +1,11 @@
 const $ = (id) => document.getElementById(id);
 
+const state = {
+  target: null,
+  coreText: "",
+};
+
+const repoEl = $("repo");
 const askEl = $("ask");
 const coreEl = $("core");
 const resultEl = $("result");
@@ -9,8 +15,14 @@ const rationaleEl = $("rationale");
 const nextEl = $("next");
 const approversEl = $("approvers");
 const briefEl = $("brief");
-const coreFlag = $("core-flag");
+const targetFlag = $("target-flag");
 const samplesEl = $("samples");
+const presetsEl = $("presets");
+const targetCard = $("target-card");
+const askPanel = $("ask-panel");
+const askBody = $("ask-body");
+const lockMsg = $("lock-msg");
+const classifyBtn = $("classify");
 const laneHeadline = $("lane-headline");
 const jiraPath = $("jira-path");
 const forgePath = $("forge-path");
@@ -18,7 +30,6 @@ const forgePath = $("forge-path");
 function showError(msg) {
   errorEl.textContent = msg;
   errorEl.classList.remove("hidden");
-  resultEl.classList.add("hidden");
 }
 
 function clearError() {
@@ -34,40 +45,91 @@ function escapeHtml(s) {
     .replaceAll('"', "&quot;");
 }
 
-async function loadExamples() {
-  const res = await fetch("/api/examples");
-  const data = await res.json();
-  samplesEl.innerHTML = "";
-  for (const ex of data.examples || []) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "chip";
-    btn.textContent = ex.label;
-    btn.addEventListener("click", () => {
-      askEl.value = ex.ask;
-    });
-    samplesEl.appendChild(btn);
+function setAskEnabled(on) {
+  askEl.disabled = !on;
+  coreEl.disabled = !on;
+  classifyBtn.disabled = !on;
+  if (on) {
+    askPanel.classList.remove("locked");
+    askBody.classList.remove("is-locked");
+    lockMsg.classList.add("hidden");
+  } else {
+    askPanel.classList.add("locked");
+    askBody.classList.add("is-locked");
+    lockMsg.classList.remove("hidden");
   }
 }
 
-$("load-example").addEventListener("click", async () => {
+function renderTarget(data) {
+  state.target = data.target;
+  state.coreText = data.core_yaml?.text || "";
+  coreEl.value = state.coreText;
+
+  const core = data.core_yaml;
+  const pills = [];
+  if (core?.found) {
+    pills.push(`<span class="pill">core.yaml · ${escapeHtml(core.path)}</span>`);
+    pills.push(
+      `<span class="pill">${core.protected_path_count || 0} protected paths</span>`
+    );
+  } else {
+    pills.push(`<span class="pill warn">No core.yaml · Behavioral default</span>`);
+  }
+  if (data.target.private) pills.push(`<span class="pill warn">private</span>`);
+
+  targetCard.classList.remove("hidden");
+  targetCard.innerHTML = `
+    <div class="name">TARGET · ${escapeHtml(data.target.full_name)}</div>
+    <p class="meta">
+      Branch <code>${escapeHtml(data.target.ref)}</code>
+      ${data.target.description ? " · " + escapeHtml(data.target.description) : ""}
+    </p>
+    <p class="meta">${core?.found ? escapeHtml(`Loaded from ${core.source}`) : escapeHtml(core?.message || "")}</p>
+    <div>${pills.join("")}</div>
+  `;
+  setAskEnabled(true);
+}
+
+async function bindRepo(repo) {
   clearError();
-  const res = await fetch("/api/example-core");
-  if (!res.ok) return showError("Could not load example core.yaml");
-  coreEl.value = await res.text();
+  resultEl.classList.add("hidden");
+  const res = await fetch("/api/bind", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ repo }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    setAskEnabled(false);
+    targetCard.classList.add("hidden");
+    throw new Error(data.error || "Bind failed");
+  }
+  renderTarget(data);
+}
+
+$("bind").addEventListener("click", async () => {
+  try {
+    await bindRepo(repoEl.value);
+  } catch (err) {
+    showError(String(err?.message || err));
+  }
 });
 
-$("clear-core").addEventListener("click", () => {
-  coreEl.value = "";
+repoEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") $("bind").click();
 });
 
-$("classify").addEventListener("click", async () => {
+classifyBtn.addEventListener("click", async () => {
   clearError();
+  if (!state.target) return showError("Bind a target repo first.");
   const ask = askEl.value;
   if (!ask.trim()) return showError("Enter a mission ask first.");
 
-  const body = { ask };
-  if (coreEl.value.trim()) body.core_yaml = coreEl.value;
+  const body = {
+    ask,
+    target: state.target.full_name,
+    core_yaml: coreEl.value,
+  };
 
   let data;
   try {
@@ -78,9 +140,6 @@ $("classify").addEventListener("click", async () => {
     });
     data = await res.json();
     if (!res.ok) return showError(data.error || "Classify failed");
-    if (data.product && data.product !== "forge") {
-      return showError("Wrong local server — expected Forge.");
-    }
   } catch (err) {
     return showError(String(err?.message || err));
   }
@@ -93,9 +152,9 @@ $("classify").addEventListener("click", async () => {
   forgePath.textContent = data.lane?.forge || "";
   rationaleEl.textContent = data.rationale;
   nextEl.textContent = data.allowed_next_step;
-  coreFlag.textContent = data.core_present
-    ? "core.yaml loaded — protected surfaces active"
-    : "no core.yaml — unclear asks default to Behavioral";
+  targetFlag.textContent = `Classified for ${data.target || state.target.full_name}${
+    data.core_present ? " · core.yaml active" : " · no core.yaml (Behavioral-safe default)"
+  }`;
 
   if (data.core_present) {
     const b = (data.approvers?.behavioral || []).join(", ") || "(none)";
@@ -127,12 +186,42 @@ $("classify").addEventListener("click", async () => {
   }
 });
 
-// Prove this tab is Forge, not another localhost app
-fetch("/api/health")
-  .then((r) => r.json())
-  .then((h) => {
-    if (h.product !== "forge") showError("This port is not serving Forge.");
-  })
-  .catch(() => showError("Could not reach Forge health endpoint on this port."));
+async function boot() {
+  setAskEnabled(false);
+  const health = await fetch("/api/health").then((r) => r.json());
+  if (health.product !== "forge") showError("This port is not serving Forge.");
 
-loadExamples().catch((err) => showError(String(err?.message || err)));
+  const presets = await fetch("/api/presets").then((r) => r.json());
+  presetsEl.innerHTML = "";
+  for (const p of presets.presets || []) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chip";
+    btn.textContent = p.label;
+    btn.title = p.note || "";
+    btn.addEventListener("click", async () => {
+      repoEl.value = p.id;
+      try {
+        await bindRepo(p.id);
+      } catch (err) {
+        showError(String(err?.message || err));
+      }
+    });
+    presetsEl.appendChild(btn);
+  }
+
+  const examples = await fetch("/api/examples").then((r) => r.json());
+  samplesEl.innerHTML = "";
+  for (const ex of examples.examples || []) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chip";
+    btn.textContent = ex.label;
+    btn.addEventListener("click", () => {
+      askEl.value = ex.ask;
+    });
+    samplesEl.appendChild(btn);
+  }
+}
+
+boot().catch((err) => showError(String(err?.message || err)));

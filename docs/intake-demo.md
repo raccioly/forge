@@ -3,28 +3,23 @@
 ## Run
 
 ```bash
+cd /Users/ricardoaccioly/Repo_claude/forge   # or your clone path
 npm run demo
 ```
 
-Watch the terminal. Forge prints a **FORGE** banner with the exact URL (default `http://127.0.0.1:3847`). If the port is busy, it auto-moves to the next free port.
+Use the URL printed in the terminal (default `http://127.0.0.1:3847`).
 
-**Do not assume port 8787** — other local apps (e.g. Jabuti) may already own it. If the page title is not `FORGE — Change Conductor`, you are on the wrong server.
+## Flow (repo-first)
 
-## What it does
+1. **Bind a GitHub target** (`owner/repo` or a preset chip)
+2. Forge loads `core.yaml` / `forge/core.yaml` / `.forge/core.yaml` if present
+3. Submit feedback → Additive / Behavioral / Core for **that** target
+4. Core → LAUNCH ABORT brief (no implementation PR)
 
-1. Paste a mission ask
-2. Optionally load/paste target `core.yaml`
-3. Run conductor → Additive / Behavioral / Core
-4. Compare old ticket-path vs Forge path
-5. Core → **LAUNCH ABORT** brief (no implementation PR)
+If the repo has no `core.yaml`, Forge uses a Behavioral-safe default until owners onboard protected surfaces.
 
-## What it is not
+## API
 
-Not the employee portal. No login, no org catalog, no GitHub writes, no merge, no contest publish.
-
-## API (local)
-
-- `GET /api/health` → `{ product: "forge", ... }`
-- `GET /api/examples`
-- `GET /api/example-core`
-- `POST /api/classify` body: `{ "ask": "...", "core_yaml": "..." }`
+- `POST /api/bind` `{ "repo": "owner/name" }`
+- `POST /api/classify` `{ "ask", "target", "core_yaml" }`
+- `GET /api/presets`

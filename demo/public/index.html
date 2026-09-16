@@ -13,33 +13,38 @@
         <div class="mark">FORGE</div>
         <h1>Change Conductor</h1>
         <p class="lede">
-          The company’s change front door. Feedback in. Safety class first.
-          Branch and PR only — never silent core changes. Never auto-merge.
+          Pick the target repo first. Then submit feedback. Forge classifies
+          Additive / Behavioral / Core against that app’s protected rules — before any code.
         </p>
-        <p class="mission">Kill the ticket theater. Keep the launch abort.</p>
+        <p class="mission">Repo first. Brake second. PR only. Never silent core changes.</p>
       </header>
 
-      <section class="lanes" aria-label="Change lanes">
-        <div class="lane additive"><span>GREEN</span> Additive — build</div>
-        <div class="lane behavioral"><span>YELLOW</span> Behavioral — approve</div>
-        <div class="lane core"><span>RED</span> Core — abort</div>
+      <section class="panel" id="target-panel">
+        <div class="step">Step 1 · Target app</div>
+        <label for="repo">GitHub repo</label>
+        <div class="row repo-row">
+          <input id="repo" type="text" placeholder="owner/repo — e.g. raccioly/docguard" autocomplete="off" />
+          <button type="button" class="primary" id="bind">Bind target</button>
+        </div>
+        <div class="row samples" id="presets"></div>
+        <div id="target-card" class="target-card hidden"></div>
       </section>
 
-      <section class="panel">
-        <label for="ask">Mission ask</label>
-        <textarea id="ask" rows="5" placeholder="What should change in the product?"></textarea>
-        <div class="row samples" id="samples"></div>
+      <section class="panel locked" id="ask-panel">
+        <div class="step">Step 2 · Mission ask</div>
+        <p class="muted lock-msg" id="lock-msg">Bind a repo above before submitting feedback.</p>
+        <div id="ask-body" class="ask-body is-locked">
+          <label for="ask">What should change?</label>
+          <textarea id="ask" rows="5" placeholder="Describe the change for this target app…" disabled></textarea>
+          <div class="row samples" id="samples"></div>
 
-        <label for="core">Target core.yaml <span class="muted">optional · defines protected surfaces</span></label>
-        <textarea id="core" rows="8" placeholder="Paste core.yaml or load the example…"></textarea>
-        <div class="row">
-          <button type="button" class="ghost" id="load-example">Load example core.yaml</button>
-          <button type="button" class="ghost" id="clear-core">Clear</button>
-        </div>
+          <label for="core">core.yaml for this target <span class="muted">auto-filled when found · editable</span></label>
+          <textarea id="core" rows="8" placeholder="Loads from the repo when present…" disabled></textarea>
 
-        <div class="row actions">
-          <button type="button" class="primary" id="classify">Run conductor</button>
-          <p class="hint muted">Local only · no publish · no merge</p>
+          <div class="row actions">
+            <button type="button" class="primary" id="classify" disabled>Run conductor</button>
+            <p class="hint muted">Local only · no publish · no merge</p>
+          </div>
         </div>
       </section>
 
@@ -48,7 +53,7 @@
           <span class="badge" id="class-badge">—</span>
           <span class="headline" id="lane-headline"></span>
         </div>
-        <p class="muted" id="core-flag"></p>
+        <p class="muted" id="target-flag"></p>
 
         <div class="split">
           <div>
@@ -70,10 +75,7 @@
       </section>
 
       <section class="panel error hidden" id="error"></section>
-
-      <footer class="foot muted">
-        If this page isn’t titled FORGE, you’re on the wrong local port.
-      </footer>
+      <footer class="foot muted">If this page isn’t titled FORGE, you’re on the wrong local port.</footer>
     </main>
     <script type="module" src="/app.js"></script>
   </body>

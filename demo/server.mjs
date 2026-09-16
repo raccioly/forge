@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Forge local intake — Change Conductor demo
- * Zero dependencies. Auto-picks a free port (never silently shares Jabuti's).
+ * Zero dependencies. Repo-first: bind target → classify.
  *
  *   npm run demo
  */
@@ -9,6 +9,7 @@ import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
 import { classify } from "../cli/classify.mjs";
 import { parseCoreYaml } from "../cli/parse-core.mjs";
 
@@ -17,6 +18,44 @@ const ROOT = join(__dirname, "..");
 const PUBLIC = join(__dirname, "public");
 const PREFERRED = Number(process.env.PORT || 3847);
 const HOST = process.env.HOST || "127.0.0.1";
+
+const CORE_PATHS = [
+  "core.yaml",
+  "forge/core.yaml",
+  ".forge/core.yaml",
+  "examples/core.example.yaml", // Forge repo demo stand-in
+];
+
+const PRESETS = [
+  {
+    id: "raccioly/forge",
+    owner: "raccioly",
+    repo: "forge",
+    label: "raccioly/forge (this product)",
+    note: "Uses examples/core.example.yaml as stand-in target rules",
+  },
+  {
+    id: "raccioly/docguard",
+    owner: "raccioly",
+    repo: "docguard",
+    label: "raccioly/docguard",
+    note: "Likely no core.yaml yet → Behavioral until onboarded",
+  },
+  {
+    id: "raccioly/websec-validator",
+    owner: "raccioly",
+    repo: "websec-validator",
+    label: "raccioly/websec-validator",
+    note: "Likely no core.yaml yet → Behavioral until onboarded",
+  },
+  {
+    id: "raccioly/agent-reliability-index",
+    owner: "raccioly",
+    repo: "agent-reliability-index",
+    label: "raccioly/agent-reliability-index",
+    note: "Likely no core.yaml yet → Behavioral until onboarded",
+  },
+];
 
 const TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -48,6 +87,106 @@ function readBody(req) {
     req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
     req.on("error", reject);
   });
+}
+
+function githubToken() {
+  if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
+  if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
+  try {
+    return execFileSync("gh", ["auth", "token"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchText(url, token) {
+  const headers = {
+    "User-Agent": "forge-change-conductor",
+    Accept: "application/vnd.github.raw+json, text/plain, */*",
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(url, { headers });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const err = new Error(`Fetch failed ${res.status} for ${url}`);
+    err.status = res.status;
+    throw err;
+  }
+  return res.text();
+}
+
+async function resolveDefaultBranch(owner, repo, token) {
+  const api = `https://api.github.com/repos/${owner}/${repo}`;
+  const headers = {
+    "User-Agent": "forge-change-conductor",
+    Accept: "application/vnd.github+json",
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(api, { headers });
+  if (res.status === 404) {
+    const err = new Error(`Repo not found: ${owner}/${repo}`);
+    err.status = 404;
+    throw err;
+  }
+  if (!res.ok) {
+    const err = new Error(`GitHub API ${res.status} for ${owner}/${repo}`);
+    err.status = res.status;
+    throw err;
+  }
+  const data = await res.json();
+  return {
+    default_branch: data.default_branch || "main",
+    private: Boolean(data.private),
+    description: data.description || "",
+    html_url: data.html_url,
+  };
+}
+
+async function loadCoreYaml(owner, repo, ref, token) {
+  // Prefer Contents API (works with token for private); fall back to raw for public
+  for (const path of CORE_PATHS) {
+    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${encodeURIComponent(ref)}`;
+    try {
+      const text = await fetchText(apiUrl, token);
+      if (text != null && text.trim()) {
+        return { path, text, source: "github" };
+      }
+    } catch (err) {
+      if (err.status && err.status !== 404) {
+        // keep trying other paths on 404 only; on 401/403 try raw if public
+        if (err.status === 401 || err.status === 403) break;
+      }
+    }
+  }
+
+  for (const path of CORE_PATHS) {
+    const raw = `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${path}`;
+    try {
+      const text = await fetchText(raw, null);
+      if (text != null && text.trim()) {
+        return { path, text, source: "raw" };
+      }
+    } catch {
+      /* try next */
+    }
+  }
+
+  // Local stand-in when targeting this Forge checkout itself
+  if (owner === "raccioly" && repo === "forge") {
+    const local = join(ROOT, "examples", "core.example.yaml");
+    if (existsSync(local)) {
+      return {
+        path: "examples/core.example.yaml",
+        text: readFileSync(local, "utf8"),
+        source: "local-demo",
+      };
+    }
+  }
+
+  return null;
 }
 
 function buildBrief(ask, result) {
@@ -91,17 +230,107 @@ function laneCopy(klass) {
   };
 }
 
+function parseOwnerRepo(input) {
+  const raw = String(input || "").trim().replace(/^https?:\/\/github\.com\//i, "");
+  const cleaned = raw.replace(/\.git$/i, "").replace(/\/$/, "");
+  const parts = cleaned.split("/").filter(Boolean);
+  if (parts.length < 2) return null;
+  return { owner: parts[0], repo: parts[1] };
+}
+
+async function handleBind(req, res) {
+  let payload;
+  try {
+    payload = JSON.parse((await readBody(req)) || "{}");
+  } catch {
+    return sendJson(res, 400, { error: "Invalid JSON body" });
+  }
+
+  const parsed = parseOwnerRepo(payload.repo || payload.target || "");
+  if (!parsed) {
+    return sendJson(res, 400, {
+      error: "Provide repo as owner/name (e.g. raccioly/docguard)",
+    });
+  }
+
+  const token = githubToken();
+  let meta;
+  try {
+    meta = await resolveDefaultBranch(parsed.owner, parsed.repo, token);
+  } catch (err) {
+    const status = err.status === 404 ? 404 : 502;
+    return sendJson(res, status, {
+      error: err.message || "Could not resolve repo",
+      hint:
+        meta?.private || err.status === 401 || err.status === 403
+          ? "Private repo? Set GITHUB_TOKEN or run gh auth login."
+          : undefined,
+    });
+  }
+
+  const ref = (payload.ref || meta.default_branch || "main").trim();
+  const loaded = await loadCoreYaml(parsed.owner, parsed.repo, ref, token);
+
+  let core = null;
+  let core_parse_error = null;
+  if (loaded?.text) {
+    try {
+      core = parseCoreYaml(loaded.text);
+    } catch (err) {
+      core_parse_error = String(err?.message || err);
+    }
+  }
+
+  return sendJson(res, 200, {
+    product: "forge",
+    target: {
+      owner: parsed.owner,
+      repo: parsed.repo,
+      full_name: `${parsed.owner}/${parsed.repo}`,
+      ref,
+      default_branch: meta.default_branch,
+      private: meta.private,
+      description: meta.description,
+      html_url: meta.html_url,
+    },
+    core_yaml: loaded
+      ? {
+          found: true,
+          path: loaded.path,
+          source: loaded.source,
+          text: loaded.text,
+          parse_error: core_parse_error,
+          product: core?.product || null,
+          protected_path_count: core?.protected_paths?.length || 0,
+          invariant_count: core?.invariants?.length || 0,
+        }
+      : {
+          found: false,
+          path: null,
+          source: null,
+          text: "",
+          mode: "Behavioral-default",
+          message:
+            "No core.yaml in this repo yet. Forge will treat asks as Behavioral until owners add protected surfaces.",
+        },
+  });
+}
+
 async function handleClassify(req, res) {
   let payload;
   try {
-    const raw = await readBody(req);
-    payload = raw ? JSON.parse(raw) : {};
+    payload = JSON.parse((await readBody(req)) || "{}");
   } catch {
     return sendJson(res, 400, { error: "Invalid JSON body" });
   }
 
   const ask = typeof payload.ask === "string" ? payload.ask : "";
   if (!ask.trim()) return sendJson(res, 400, { error: "Missing ask" });
+
+  const targetName =
+    typeof payload.target === "string"
+      ? payload.target
+      : payload.target?.full_name || null;
 
   let core = null;
   if (typeof payload.core_yaml === "string" && payload.core_yaml.trim()) {
@@ -121,6 +350,7 @@ async function handleClassify(req, res) {
     brief: buildBrief(ask, result),
     lane: laneCopy(result.class),
     product: "forge",
+    target: targetName,
   });
 }
 
@@ -145,7 +375,12 @@ function createAppServer() {
         product: "forge",
         name: "Change Conductor",
         mark: "FORGE",
+        repo_first: true,
       });
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/presets") {
+      return sendJson(res, 200, { presets: PRESETS });
     }
 
     if (req.method === "GET" && url.pathname === "/api/example-core") {
@@ -176,6 +411,10 @@ function createAppServer() {
       });
     }
 
+    if (req.method === "POST" && url.pathname === "/api/bind") {
+      return handleBind(req, res);
+    }
+
     if (req.method === "POST" && url.pathname === "/api/classify") {
       return handleClassify(req, res);
     }
@@ -198,12 +437,11 @@ function banner(port) {
   return `
 ╔══════════════════════════════════════════════════════════╗
 ║  FORGE — Change Conductor                                ║
-║  Local intake demo (not Jabuti, not DocGuard)              ║
+║  Repo-first intake demo                                  ║
 ║                                                          ║
 ║  →  ${url.padEnd(48)}║
 ║                                                          ║
-║  If you still see another site, you're on the wrong port.║
-║  This process owns ONLY the URL above.                   ║
+║  Pick a GitHub repo first, then submit feedback.         ║
 ╚══════════════════════════════════════════════════════════╝
 `;
 }
@@ -218,7 +456,7 @@ async function main() {
       process.stdout.write(banner(port));
       if (port !== PREFERRED) {
         process.stdout.write(
-          `(Port ${PREFERRED} was busy — auto-moved to ${port}. Jabuti/others often sit on 8787.)\n`
+          `(Port ${PREFERRED} was busy — auto-moved to ${port}.)\n`
         );
       }
       return;
@@ -227,11 +465,7 @@ async function main() {
       if (err?.code !== "EADDRINUSE") throw err;
     }
   }
-  console.error(
-    `Forge could not bind ports ${PREFERRED}–${PREFERRED + maxTries - 1}. Last error:`,
-    lastErr
-  );
-  console.error("Set PORT=NNNN and retry. Do not use a port another app already owns.");
+  console.error(`Forge could not bind ports ${PREFERRED}–${PREFERRED + maxTries - 1}.`, lastErr);
   process.exit(1);
 }
 
