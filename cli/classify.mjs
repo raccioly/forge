@@ -118,7 +118,7 @@ export function classify(ask, core = null) {
 
   if (core?.invariants?.length) {
     for (const inv of core.invariants) {
-      const idHit = inv.id && new RegExp(`\\b${inv.id.replace(/[-_]/g, "[-_]?\")}\\b`, "i").test(text);
+      const idHit = inv.id && new RegExp(`\\b${inv.id.replace(/[-_]/g, "[-_]?")}\\b`, "i").test(text);
       const summaryHit =
         inv.summary &&
         inv.summary

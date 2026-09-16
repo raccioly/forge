@@ -144,7 +144,7 @@ export function parseCoreYaml(text) {
         continue;
       }
       if (currentObj && indent >= 4 && trimmed.includes(":")) {
-        const idx = trimmed.indexOf(":');
+        const idx = trimmed.indexOf(":");
         const k = trimmed.slice(0, idx).trim();
         const v = trimmed.slice(idx + 1).trim();
         if (k === "path" || k === "reason") currentObj[k] = String(unquote(v));
