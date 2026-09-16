@@ -1,0 +1,17 @@
+{
+  "name": "forge",
+  "version": "0.1.0",
+  "description": "Forge — Change Conductor. Classify feedback, gate change, PR-only.",
+  "type": "module",
+  "bin": {
+    "forge-classify": "./cli/forge-classify.mjs"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "classify": "node cli/forge-classify.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
