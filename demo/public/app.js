@@ -72,6 +72,11 @@ function renderTarget(data) {
     pills.push(
       `<span class="pill">${core.protected_path_count || 0} protected paths</span>`
     );
+  } else if (core?.draft) {
+    pills.push(`<span class="pill warn">PROPOSED draft — owners must edit</span>`);
+    pills.push(
+      `<span class="pill warn">${core.protected_path_count || 0} guessed paths</span>`
+    );
   } else {
     pills.push(`<span class="pill warn">No core.yaml · Behavioral default</span>`);
   }
@@ -84,7 +89,7 @@ function renderTarget(data) {
       Branch <code>${escapeHtml(data.target.ref)}</code>
       ${data.target.description ? " · " + escapeHtml(data.target.description) : ""}
     </p>
-    <p class="meta">${core?.found ? escapeHtml(`Loaded from ${core.source}`) : escapeHtml(core?.message || "")}</p>
+    <p class="meta">${escapeHtml(core?.message || (core?.found ? `Loaded from ${core.source}` : ""))}</p>
     <div>${pills.join("")}</div>
   `;
   setAskEnabled(true);
