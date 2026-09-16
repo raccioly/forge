@@ -3,44 +3,64 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Forge — intake demo</title>
+    <title>FORGE — Change Conductor</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <div class="stars" aria-hidden="true"></div>
     <main class="wrap">
       <header class="hero">
-        <p class="eyebrow">Forge · local intake demo</p>
-        <h1>Submit feedback. See the brake.</h1>
+        <div class="mark">FORGE</div>
+        <h1>Change Conductor</h1>
         <p class="lede">
-          Paste an ask, optionally attach a target <code>core.yaml</code>, and Forge
-          classifies Additive / Behavioral / Core before any code.
+          The company’s change front door. Feedback in. Safety class first.
+          Branch and PR only — never silent core changes. Never auto-merge.
         </p>
+        <p class="mission">Kill the ticket theater. Keep the launch abort.</p>
       </header>
 
-      <section class="panel">
-        <label for="ask">Feedback</label>
-        <textarea id="ask" rows="5" placeholder="What should change?"></textarea>
+      <section class="lanes" aria-label="Change lanes">
+        <div class="lane additive"><span>GREEN</span> Additive — build</div>
+        <div class="lane behavioral"><span>YELLOW</span> Behavioral — approve</div>
+        <div class="lane core"><span>RED</span> Core — abort</div>
+      </section>
 
+      <section class="panel">
+        <label for="ask">Mission ask</label>
+        <textarea id="ask" rows="5" placeholder="What should change in the product?"></textarea>
         <div class="row samples" id="samples"></div>
 
-        <label for="core">Target core.yaml <span class="muted">(optional)</span></label>
-        <textarea id="core" rows="10" placeholder="Paste core.yaml, or load the example…"></textarea>
+        <label for="core">Target core.yaml <span class="muted">optional · defines protected surfaces</span></label>
+        <textarea id="core" rows="8" placeholder="Paste core.yaml or load the example…"></textarea>
         <div class="row">
           <button type="button" class="ghost" id="load-example">Load example core.yaml</button>
           <button type="button" class="ghost" id="clear-core">Clear</button>
         </div>
 
         <div class="row actions">
-          <button type="button" class="primary" id="classify">Classify</button>
-          <p class="hint muted">Local only · nothing is sent to GitHub or merged</p>
+          <button type="button" class="primary" id="classify">Run conductor</button>
+          <p class="hint muted">Local only · no publish · no merge</p>
         </div>
       </section>
 
       <section class="panel result hidden" id="result">
         <div class="badge-row">
           <span class="badge" id="class-badge">—</span>
-          <span class="muted" id="core-flag"></span>
+          <span class="headline" id="lane-headline"></span>
         </div>
+        <p class="muted" id="core-flag"></p>
+
+        <div class="split">
+          <div>
+            <h2>Old path</h2>
+            <p id="jira-path"></p>
+          </div>
+          <div>
+            <h2>Forge path</h2>
+            <p id="forge-path"></p>
+          </div>
+        </div>
+
         <h2>Rationale</h2>
         <p id="rationale"></p>
         <h2>Allowed next step</h2>
@@ -50,6 +70,10 @@
       </section>
 
       <section class="panel error hidden" id="error"></section>
+
+      <footer class="foot muted">
+        If this page isn’t titled FORGE, you’re on the wrong local port.
+      </footer>
     </main>
     <script type="module" src="/app.js"></script>
   </body>

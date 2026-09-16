@@ -51,7 +51,8 @@ Zero-dependency local UI (uses the classifier):
 
 ```bash
 npm run demo
-# open http://127.0.0.1:8787
+# Terminal prints the exact FORGE URL (default http://127.0.0.1:3847).
+# If that port is busy it auto-moves. Do not open 8787 — that may be another app (e.g. Jabuti).
 ```
 
 Paste feedback, optionally load the example `core.yaml`, hit Classify. Core asks show a human-review brief stub (no implementation PR).

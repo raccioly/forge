@@ -11,6 +11,9 @@ const approversEl = $("approvers");
 const briefEl = $("brief");
 const coreFlag = $("core-flag");
 const samplesEl = $("samples");
+const laneHeadline = $("lane-headline");
+const jiraPath = $("jira-path");
+const forgePath = $("forge-path");
 
 function showError(msg) {
   errorEl.textContent = msg;
@@ -21,6 +24,14 @@ function showError(msg) {
 function clearError() {
   errorEl.classList.add("hidden");
   errorEl.textContent = "";
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }
 
 async function loadExamples() {
@@ -53,7 +64,7 @@ $("clear-core").addEventListener("click", () => {
 $("classify").addEventListener("click", async () => {
   clearError();
   const ask = askEl.value;
-  if (!ask.trim()) return showError("Enter some feedback first.");
+  if (!ask.trim()) return showError("Enter a mission ask first.");
 
   const body = { ask };
   if (coreEl.value.trim()) body.core_yaml = coreEl.value;
@@ -67,6 +78,9 @@ $("classify").addEventListener("click", async () => {
     });
     data = await res.json();
     if (!res.ok) return showError(data.error || "Classify failed");
+    if (data.product && data.product !== "forge") {
+      return showError("Wrong local server — expected Forge.");
+    }
   } catch (err) {
     return showError(String(err?.message || err));
   }
@@ -74,11 +88,14 @@ $("classify").addEventListener("click", async () => {
   resultEl.classList.remove("hidden");
   classBadge.textContent = data.class;
   classBadge.className = `badge ${data.class}`;
+  laneHeadline.textContent = data.lane?.headline || "";
+  jiraPath.textContent = data.lane?.jira || "";
+  forgePath.textContent = data.lane?.forge || "";
   rationaleEl.textContent = data.rationale;
   nextEl.textContent = data.allowed_next_step;
   coreFlag.textContent = data.core_present
-    ? "core.yaml loaded"
-    : "no core.yaml — Behavioral default if unclear";
+    ? "core.yaml loaded — protected surfaces active"
+    : "no core.yaml — unclear asks default to Behavioral";
 
   if (data.core_present) {
     const b = (data.approvers?.behavioral || []).join(", ") || "(none)";
@@ -101,7 +118,7 @@ $("classify").addEventListener("click", async () => {
       <p><strong>Protected paths:</strong> ${escapeHtml(paths)}</p>
       <p><strong>Invariants:</strong> ${escapeHtml(inv)}</p>
       <p><strong>Core approvers:</strong> ${escapeHtml((data.brief.approvers_core || []).join(", ") || "(none)")}</p>
-      <p><strong>Humans should decide:</strong></p>
+      <p><strong>Abort checklist:</strong></p>
       <ul>${qs}</ul>
     `;
   } else {
@@ -110,12 +127,12 @@ $("classify").addEventListener("click", async () => {
   }
 });
 
-function escapeHtml(s) {
-  return String(s)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
+// Prove this tab is Forge, not another localhost app
+fetch("/api/health")
+  .then((r) => r.json())
+  .then((h) => {
+    if (h.product !== "forge") showError("This port is not serving Forge.");
+  })
+  .catch(() => showError("Could not reach Forge health endpoint on this port."));
 
 loadExamples().catch((err) => showError(String(err?.message || err)));
