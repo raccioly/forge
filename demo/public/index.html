@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FORGE — Change Conductor</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="stars" aria-hidden="true"></div>
+    <main class="wrap">
+      <header class="hero">
+        <div class="mark">FORGE</div>
+        <h1>Change Conductor</h1>
+        <p class="lede">
+          Pick the target repo first. Then submit feedback. Forge classifies
+          Additive / Behavioral / Core against that app’s protected rules — before any code.
+        </p>
+        <p class="mission">Repo first. Brake second. PR only. Never silent core changes.</p>
+      </header>
+
+      <section class="panel" id="target-panel">
+        <div class="step">Step 1 · Target app</div>
+        <label for="repo">GitHub repo</label>
+        <div class="row repo-row">
+          <input id="repo" type="text" placeholder="owner/repo — e.g. raccioly/docguard" autocomplete="off" />
+          <button type="button" class="primary" id="bind">Bind target</button>
+        </div>
+        <div class="row samples" id="presets"></div>
+        <div id="target-card" class="target-card hidden"></div>
+      </section>
+
+      <section class="panel locked" id="ask-panel">
+        <div class="step">Step 2 · Mission ask</div>
+        <p class="muted lock-msg" id="lock-msg">Bind a repo above before submitting feedback.</p>
+        <div id="ask-body" class="ask-body is-locked">
+          <label for="ask">What should change?</label>
+          <textarea id="ask" rows="5" placeholder="Describe the change for this target app…" disabled></textarea>
+          <div class="row samples" id="samples"></div>
+
+          <label for="core">core.yaml for this target <span class="muted">auto-filled when found · editable</span></label>
+          <textarea id="core" rows="8" placeholder="Loads from the repo when present…" disabled></textarea>
+
+          <div class="row actions">
+            <button type="button" class="primary" id="classify" disabled>Run conductor</button>
+            <p class="hint muted">Local only · no publish · no merge</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel result hidden" id="result">
+        <div class="badge-row">
+          <span class="badge" id="class-badge">—</span>
+          <span class="headline" id="lane-headline"></span>
+        </div>
+        <p class="muted" id="target-flag"></p>
+
+        <div class="split">
+          <div>
+            <h2>Old path</h2>
+            <p id="jira-path"></p>
+          </div>
+          <div>
+            <h2>Forge path</h2>
+            <p id="forge-path"></p>
+          </div>
+        </div>
+
+        <h2>Rationale</h2>
+        <p id="rationale"></p>
+        <h2>Allowed next step</h2>
+        <p id="next"></p>
+        <div id="approvers" class="approvers muted"></div>
+        <div id="brief" class="brief hidden"></div>
+      </section>
+
+      <section class="panel error hidden" id="error"></section>
+      <footer class="foot muted">If this page isn’t titled FORGE, you’re on the wrong local port.</footer>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
